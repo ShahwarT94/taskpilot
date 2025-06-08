@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>TaskPilot - Interactive Task Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #8EC5FC, #E0C3FC);
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .task-priority {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .priority-high {
+            background-color: #ff4757;
+        }
+        
+        .priority-medium {
+            background-color: #ffa502;
+        }
+        
+        .priority-low {
+            background-color: #2ed573;
+        }
+        
+        .completed {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        
+        .list-group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glass">
+        <h2 class="text-center text-white mb-4"> TaskPilot</h2>
+
+        <div class="d-flex justify-content-around text-white mb-3">
+            <div>Total: <span id="totalTasks">0</span></div>
+            <div>Done: <span id="completedTasks">0</span></div>
+            <div>Pending: <span id="pendingTasks">0</span></div>
+        </div>
+
+        <div class="btn-group d-flex justify-content-center mb-3">
+            <button class="btn btn-sm btn-primary" onclick="filterTasks('all')">All</button>
+            <button class="btn btn-sm btn-primary" onclick="filterTasks('active')">Active</button>
+            <button class="btn btn-sm btn-primary" onclick="filterTasks('completed')">Completed</button>
+        </div>
+
+        <div class="input-group mb-4">
+            <input type="text" id="taskInput" class="form-control" placeholder="Enter a new task">
+            <select id="prioritySelect" class="form-select" style="max-width: 100px;">
+      <option value="low">Low</option>
+      <option value="medium" selected>Medium</option>
+      <option value="high">High</option>
+    </select>
+            <button class="btn btn-primary" onclick="addTask()">+ Add</button>
+        </div>
+
+        <ul id="taskList" class="list-group"></ul>
+    </div>
+
+    <script>
+        const API_URL = "http://localhost:5050/tasks";
+        let allTasks = [];
+        let currentFilter = 'all';
+
+        async function fetchTasks() {
+            const res = await fetch(API_URL);
+            allTasks = await res.json();
+            updateStats();
+            renderTasks();
+        }
+
+        async function addTask() {
+            const title = document.getElementById("taskInput").value.trim();
+            const priority = document.getElementById("prioritySelect").value;
+            if (!title) return;
+
+            await fetch(API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    title,
+                    priority
+                })
+            });
+
+            document.getElementById("taskInput").value = "";
+            fetchTasks();
+        }
+
+        async function toggleTask(id) {
+            await fetch(`${API_URL}/${id}`, {
+                method: "PUT"
+            });
+            fetchTasks();
+        }
+
+        async function deleteTask(id) {
+            await fetch(`${API_URL}/${id}`, {
+                method: "DELETE"
+            });
+            fetchTasks();
+        }
+
+        function renderTasks() {
+            const taskList = document.getElementById("taskList");
+            taskList.innerHTML = "";
+
+            let tasks = [...allTasks];
+            if (currentFilter === 'active') tasks = tasks.filter(t => !t.done);
+            if (currentFilter === 'completed') tasks = tasks.filter(t => t.done);
+
+            if (tasks.length === 0) {
+                taskList.innerHTML = `<li class="list-group-item text-muted">No tasks</li>`;
+                return;
+            }
+
+            tasks.forEach(task => {
+                const item = document.createElement("li");
+                item.className = "list-group-item";
+                item.innerHTML = `
+      <div class="d-flex align-items-center">
+        <div class="task-priority priority-${task.priority || 'medium'}"></div>
+        <div class="${task.done ? 'completed' : ''}">${task.title}</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-sm btn-${task.done ? 'success' : 'warning'}" onclick="toggleTask(${task.id})">
+          ${task.done ? '<i class="bi bi-check-circle-fill"></i>' : '<i class="bi bi-circle"></i>'}
+        </button>
+        <button class="btn btn-sm btn-danger" onclick="deleteTask(${task.id})">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>`;
+                taskList.appendChild(item);
+            });
+        }
+
+        function filterTasks(filter) {
+            currentFilter = filter;
+            renderTasks();
+        }
+
+        function updateStats() {
+            const total = allTasks.length;
+            const completed = allTasks.filter(t => t.done).length;
+            document.getElementById("totalTasks").textContent = total;
+            document.getElementById("completedTasks").textContent = completed;
+            document.getElementById("pendingTasks").textContent = total - completed;
+        }
+
+        fetchTasks();
+    </script>
+</body>
+
+</html>
