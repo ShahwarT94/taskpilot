@@ -44,3 +44,37 @@
 git clone https://github.com/your-username/taskpilot.git
 cd taskpilot
 docker-compose up --build
+
+
+Once started, access the application at:
+
+Frontend: http://localhost:8080
+
+Backend API: http://localhost:5050/tasks
+
+Project Structure
+swift
+Copy
+Edit
+taskpilot/
+├── backend/
+│   ├── app.py
+│   └── requirements.txt
+├── frontend/
+│   └── [static HTML/CSS/JS files]
+├── docker-compose.yml
+API Endpoints
+Method	Endpoint	Description
+GET	/tasks	List all tasks
+POST	/tasks	Create a new task
+PUT	/tasks/<task_id>	Toggle task status
+DELETE	/tasks/<task_id>	Delete a task
+
+Author
+Shahwarr Shamim
+Cloud Engineering and Software Development
+LinkedIn: www.linkedin.com/in/muhammad-shahwar-shamim-aa140b263
+
+License
+This project is licensed under the MIT License.
+
